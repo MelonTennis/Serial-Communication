@@ -1,0 +1,127 @@
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.STD_LOGIC_UNSIGNED.ALL;
+ENTITY JYJ IS
+   PORT 
+        (JYJ_CLK_50M: IN STD_LOGIC;
+         JYJ_DATAIN:IN STD_LOGIC_VECTOR (3 DOWNTO 0);
+         JYJ_DATAOUT:OUT STD_LOGIC;
+         JYJ_LEDSHOW1:OUT STD_LOGIC_VECTOR (6 DOWNTO 0);
+         JYJ_LEDSHOW2:OUT STD_LOGIC_VECTOR (6 DOWNTO 0)
+      );
+END ENTITY JYJ;
+
+ARCHITECTURE JYJ OF JYJ IS
+    TYPE JYJ_TSTATE_TYPE IS
+         (JYJ_TSTATE_IDLE,JYJ_TSTATE_START,JYJ_TSTATE_WORK,JYJ_TSTATE_STOP);
+    SIGNAL JYJ_CLK_11M5:STD_LOGIC;
+    SIGNAL JYJ_COUNT:STD_LOGIC_VECTOR (8 DOWNTO 0);
+    SIGNAL JYJ_DATACODE:STD_LOGIC_VECTOR (7 DOWNTO 0);
+    SIGNAL JYJ_TSTATE:JYJ_TSTATE_TYPE :=JYJ_TSTATE_IDLE;
+    SIGNAL JYJ_STOPCNT:STD_LOGIC_VECTOR (7 DOWNTO 0);
+BEGIN 
+     PROCESS(JYJ_CLK_50M)
+     BEGIN
+         IF JYJ_CLK_50M'EVENT AND JYJ_CLK_50M='1' THEN
+              IF JYJ_COUNT<216 THEN
+                 JYJ_COUNT<=JYJ_COUNT+1;
+                 JYJ_CLK_11M5<='0';
+              ELSIF JYJ_COUNT<433 THEN
+                      JYJ_COUNT<=JYJ_COUNT+1;
+                      JYJ_CLK_11M5<='1';
+              ELSE 
+                    JYJ_COUNT<=(OTHERS=>'0');
+                    JYJ_CLK_11M5<='0';
+              END IF;
+           END IF;
+     END PROCESS;
+     
+     PROCESS(JYJ_CLK_50M)
+     BEGIN
+          JYJ_DATACODE(3)<=JYJ_DATAIN(3) XOR JYJ_DATAIN(1) XOR JYJ_DATAIN(0);
+          JYJ_DATACODE(2)<=JYJ_DATAIN(3) XOR JYJ_DATAIN(2) XOR JYJ_DATAIN(1);
+          JYJ_DATACODE(1)<=JYJ_DATAIN(2) XOR JYJ_DATAIN(1) XOR JYJ_DATAIN(0); 
+          JYJ_DATACODE(0)<='0';
+          JYJ_DATACODE(7 DOWNTO 4)<=JYJ_DATAIN;
+          
+     END PROCESS;
+     
+     PROCESS(JYJ_CLK_11M5)
+     BEGIN
+          CASE JYJ_DATACODE(3 DOWNTO 0) IS
+              WHEN "0000" => JYJ_LEDSHOW1 <="1000000";
+	           WHEN "0001" => JYJ_LEDSHOW1 <="1111001";
+	           WHEN "0010" => JYJ_LEDSHOW1 <="0100100";
+	           WHEN "0011" => JYJ_LEDSHOW1 <="0110000";
+	           WHEN "0100" => JYJ_LEDSHOW1 <="0011001";         
+	           WHEN "0101" => JYJ_LEDSHOW1 <="0010010";
+	           WHEN "0110" => JYJ_LEDSHOW1 <="0000010";
+	           WHEN "0111" => JYJ_LEDSHOW1 <="1111000";
+	           WHEN "1000" => JYJ_LEDSHOW1 <="0000000";
+	           WHEN "1001" => JYJ_LEDSHOW1 <="0010000";
+	           WHEN "1010" => JYJ_LEDSHOW1 <="0001000";
+	           WHEN "1011" => JYJ_LEDSHOW1 <="0000011";
+	           WHEN "1100" => JYJ_LEDSHOW1 <="1000110";
+	           WHEN "1101" => JYJ_LEDSHOW1 <="0100001";
+	           WHEN "1110" => JYJ_LEDSHOW1 <="0000110";
+	           WHEN OTHERS => JYJ_LEDSHOW1 <="0001110";
+	       END CASE;
+	   END PROCESS;
+	   
+	   PROCESS(JYJ_CLK_11M5)
+       BEGIN
+            CASE JYJ_DATAIN IS
+              WHEN "0000" => JYJ_LEDSHOW2 <="1000000";
+	           WHEN "0001" => JYJ_LEDSHOW2 <="1111001";
+	           WHEN "0010" => JYJ_LEDSHOW2 <="0100100";
+	           WHEN "0011" => JYJ_LEDSHOW2 <="0110000";
+	           WHEN "0100" => JYJ_LEDSHOW2 <="0011001";         
+	           WHEN "0101" => JYJ_LEDSHOW2 <="0010010";
+	           WHEN "0110" => JYJ_LEDSHOW2 <="0000010";
+	           WHEN "0111" => JYJ_LEDSHOW2 <="1111000";
+	           WHEN "1000" => JYJ_LEDSHOW2 <="0000000";
+	           WHEN "1001" => JYJ_LEDSHOW2 <="0010000";
+	           WHEN "1010" => JYJ_LEDSHOW2 <="0001000";
+	           WHEN "1011" => JYJ_LEDSHOW2 <="0000011";
+	           WHEN "1100" => JYJ_LEDSHOW2 <="1000110";
+	           WHEN "1101" => JYJ_LEDSHOW2 <="0100001";
+	           WHEN "1110" => JYJ_LEDSHOW2 <="0000110";
+	           WHEN OTHERS => JYJ_LEDSHOW2 <="0001110";
+	         END CASE;
+	     END PROCESS;
+	     
+	    PROCESS(JYJ_CLK_11M5)
+        VARIABLE JYJ_NUM:INTEGER RANGE 7 DOWNTO 0;
+	    BEGIN 
+                IF JYJ_CLK_11M5'EVENT AND JYJ_CLK_11M5='1' THEN
+	             CASE JYJ_TSTATE IS
+	                 WHEN JYJ_TSTATE_IDLE =>   
+                          JYJ_TSTATE <=JYJ_TSTATE_START;
+                     WHEN JYJ_TSTATE_START =>
+                          JYJ_NUM:=0;
+                          JYJ_DATAOUT<='0';
+                          JYJ_TSTATE <=JYJ_TSTATE_WORK;     
+                     WHEN JYJ_TSTATE_WORK=>
+                          JYJ_DATAOUT<=JYJ_DATACODE(JYJ_NUM);
+                          IF JYJ_NUM<7 THEN
+                             JYJ_NUM:=JYJ_NUM+1;
+                             JYJ_TSTATE <=JYJ_TSTATE_WORK;
+                          ELSE
+                             JYJ_TSTATE<=JYJ_TSTATE_STOP;
+                             JYJ_STOPCNT<=X"00";
+                          END IF;
+                     WHEN JYJ_TSTATE_STOP =>
+                           JYJ_DATAOUT<='1';
+                           IF  JYJ_STOPCNT<X"08" THEN
+                               JYJ_STOPCNT<= JYJ_STOPCNT+1;
+                               JYJ_TSTATE<=JYJ_TSTATE_STOP;
+                           ELSE 
+                               JYJ_TSTATE<=JYJ_TSTATE_IDLE; 
+                               JYJ_STOPCNT<=X"00";
+                           END IF;
+                      WHEN OTHERS =>
+                           JYJ_TSTATE <= JYJ_TSTATE_IDLE;
+                       END CASE;
+                END IF;
+         END PROCESS;
+END  ARCHITECTURE JYJ ; 
